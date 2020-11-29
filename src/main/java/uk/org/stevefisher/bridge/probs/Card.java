@@ -79,4 +79,8 @@ public class Card {
 		return hcpMap.get(denomination);
 	}
 
+	public static String nameOf(int i) {
+		return nameMap.get(i);
+	}
+
 }

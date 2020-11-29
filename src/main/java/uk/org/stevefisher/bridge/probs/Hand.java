@@ -1,6 +1,7 @@
 package uk.org.stevefisher.bridge.probs;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +19,16 @@ public class Hand {
 	private static final Logger logger = LogManager.getLogger(Hand.class);
 
 	private Set<Card> cards = new HashSet<Card>();
+
+	private boolean inited;
+
+	private int hcp;
+
+	private int fours;
+
+	private HashMap<Suit, Set<Card>> suitCards;
+
+	private boolean balanced;
 
 	private static Map<Suit, String> bumrubMap = Map.ofEntries(Map.entry(Suit.CLUBS, "1H"),
 			Map.entry(Suit.DIAMONDS, "1C"), Map.entry(Suit.HEARTS, "1D"), Map.entry(Suit.SPADES, "1D"));
@@ -48,46 +59,51 @@ public class Hand {
 	}
 
 	public int getHcp() {
-		int hcp = 0;
-		for (Card card : cards) {
-			hcp += card.getHcp();
-		}
+		init();
 		return hcp;
 	}
 
-	public String getOpen() {
-		Map<Suit, Integer> suitHCP = new HashMap<Suit, Integer>();
-		Map<Suit, Set<Card>> suitCards = new HashMap<Suit, Set<Card>>();
-		for (Suit suit : Suit.values()) {
-			suitHCP.put(suit, 0);
-			suitCards.put(suit, new HashSet<Card>());
-		}
+	private void init() {
+		if (!inited) {
+			Map<Suit, Integer> suitHCP = new HashMap<Suit, Integer>();
+			suitCards = new HashMap<Suit, Set<Card>>();
+			for (Suit suit : Suit.values()) {
+				suitHCP.put(suit, 0);
+				suitCards.put(suit, new HashSet<Card>());
+			}
 
-		for (Card card : cards) {
-			Suit suit = card.getSuit();
-			suitHCP.put(suit, suitHCP.get(suit) + card.getHcp());
-			suitCards.get(suit).add(card);
-		}
-		boolean balanced = true;
-		int doubletons = 0;
-		int hcp = 0;
-		int fours = 0;
-		for (Suit suit : Suit.values()) {
-			int n = suitCards.get(suit).size();
-			if (n < 2) {
+			for (Card card : cards) {
+				Suit suit = card.getSuit();
+				suitHCP.put(suit, suitHCP.get(suit) + card.getHcp());
+				suitCards.get(suit).add(card);
+			}
+			balanced = true;
+			int doubletons = 0;
+			hcp = 0;
+			fours = 0;
+			for (Suit suit : Suit.values()) {
+				int n = suitCards.get(suit).size();
+				if (n < 2) {
+					balanced = false;
+				}
+				if (n == 2) {
+					doubletons++;
+				}
+				if (n == 4) {
+					fours++;
+				}
+				hcp += suitHCP.get(suit);
+			}
+			if (doubletons > 1) {
 				balanced = false;
 			}
-			if (n == 2) {
-				doubletons++;
-			}
-			if (n == 4) {
-				fours++;
-			}
-			hcp += suitHCP.get(suit);
+			inited = true;
 		}
-		if (doubletons > 1) {
-			balanced = false;
-		}
+
+	}
+
+	public String getOpen() {
+		init();
 		logger.debug("HCP " + hcp);
 		if (fours == 3) {
 			// 4441 hand
@@ -200,10 +216,149 @@ public class Hand {
 	}
 
 	public String getResponse(String opening) {
-		if (! "1N".equals(opening)) {
+		if (!"1N".equals(opening)) {
 			return "PASS";
 		}
 		return "2C";
+	}
+
+	public String getDisplay() {
+		init();
+		String result = "";
+		List<Suit> suits = new ArrayList<Suit>(Arrays.asList(Suit.values()));
+		Collections.reverse(suits);
+		for (Suit s : suits) {
+			result += s.name().charAt(0);
+			cards = suitCards.get(s);
+			if (cards.contains(new Card('A', s))) {
+				result += "A";
+			}
+			for (int i = 13; i > 1; i--) {
+				if (cards.contains(new Card(i, s))) {
+					result += Card.nameOf(i);
+				}
+			}
+		}
+		return result;
+	}
+
+	public boolean has5CM() {
+		init();
+		return suitCards.get(Suit.SPADES).size() >= 5 || suitCards.get(Suit.HEARTS).size() >= 5;
+	}
+
+	public String getOpen5CM() {
+		init();
+
+		// Find two longest suits
+		Suit longest = null;
+		int len = 0;
+		for (Suit suit : Suit.values()) {
+			if (longest == null || suitCards.get(suit).size() > len) {
+				longest = suit;
+				len = suitCards.get(suit).size();
+			}
+		}
+		Suit longest2 = null;
+		int len2 = 0;
+		for (Suit suit : Suit.values()) {
+			if (suit != longest && (longest2 == null || suitCards.get(suit).size() > len2)) {
+				longest2 = suit;
+				len2 = suitCards.get(suit).size();
+			}
+		}
+
+		if (balanced && hcp >= 15 && hcp <= 17) {
+			return "1N";
+		}
+
+		if (hcp > 20) {
+			// TODO encode 2C and 2N
+			return "BIG";
+		}
+
+		if (hcp < 12 && hcp + len + len2 < 20) {
+			// TODO Encode preempts
+			return "PASS";
+		}
+
+		int lH = suitCards.get(Suit.HEARTS).size();
+		int lS = suitCards.get(Suit.SPADES).size();
+		boolean mH = lH >= 5;
+		boolean mS = lS >= 5;
+		if (mH && mS) {
+			return lH >= lS ? "1H" : "1S";
+		} else if (mH) {
+			return "1H";
+		} else if (mS) {
+			return "1S";
+		}
+
+		int lC = suitCards.get(Suit.CLUBS).size();
+		int lD = suitCards.get(Suit.DIAMONDS).size();
+		if (fours == 3 && lD == 4) {
+			return "1D";
+		}
+		if (balanced && lD >= 5) {
+			return "1D";
+		}
+		if (!balanced && lD > lC) {
+			return "1D";
+		}
+		return "1C";
+	}
+
+	public String intervention(String open) {
+		init();
+		if (hcp < 5) {
+			return "PASS";
+		}
+		Suit suitOpened = null;
+		for (Suit s : Suit.values()) {
+			if (s.name().charAt(0) == open.charAt(1)) {
+				suitOpened = s;
+				break;
+			}
+		}
+
+		// Consider overcall
+		for (Suit s : Suit.values()) {
+			if (s != suitOpened) {
+				int sqNeeded = s.compareTo(suitOpened) < 0 ? 8 : 7;
+				if (getSQ(s) >= sqNeeded) {
+					return "" + (sqNeeded - 6) + s.name().charAt(0);
+				}
+			}
+		}
+		// Consider double
+		if (hcp >= 12 && suitCards.get(suitOpened).size() < 3) {
+			for (Suit s : Suit.values()) {
+				if (s != suitOpened) {
+					if (suitCards.get(s).size() < 3) {
+						return "PASS";
+					}
+				}
+			}
+			return "X";
+		}
+
+		return "PASS";
+	}
+
+	public int getSQ(Suit s) {
+		init();
+		int sq = suitCards.get(s).size();
+		for (Card c : suitCards.get(s)) {
+			if (c.getDenomination() > 10 || c.getDenomination() == 1) {
+				sq++;
+			}
+		}
+		return sq;
+	}
+
+	public boolean has4CM() {
+		init();
+		return suitCards.get(Suit.SPADES).size() >= 4 || suitCards.get(Suit.HEARTS).size() >= 4;
 	}
 
 }

@@ -1,6 +1,7 @@
 package uk.org.stevefisher.bridge.probs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.logging.log4j.LogManager;
@@ -159,6 +160,76 @@ class ProbTest {
 	}
 
 	@Test
+	void testSQ() {
+		assertEquals(7, createHand1().getSQ(Suit.SPADES));
+		assertEquals(6, createHand1().getSQ(Suit.HEARTS));
+		assertEquals(5, createHand1().getSQ(Suit.DIAMONDS));
+		assertEquals(0, createHand1().getSQ(Suit.CLUBS));
+		assertEquals(7, createHand2().getSQ(Suit.SPADES));
+		assertEquals(6, createHand2().getSQ(Suit.HEARTS));
+		assertEquals(3, createHand2().getSQ(Suit.DIAMONDS));
+		assertEquals(3, createHand2().getSQ(Suit.CLUBS));
+		assertEquals(7, createHand3().getSQ(Suit.SPADES));
+		assertEquals(6, createHand3().getSQ(Suit.HEARTS));
+		assertEquals(2, createHand3().getSQ(Suit.DIAMONDS));
+		assertEquals(3, createHand3().getSQ(Suit.CLUBS));
+		assertEquals(7, createHand4().getSQ(Suit.SPADES));
+		assertEquals(6, createHand4().getSQ(Suit.HEARTS));
+		assertEquals(5, createHand4().getSQ(Suit.DIAMONDS));
+		assertEquals(1, createHand4().getSQ(Suit.CLUBS));
+	}
+
+	@Test
+	void testDisplay() {
+		assertEquals("SAKT82HQJ32DQ542C", createHand1().getDisplay());
+		assertEquals("SAKJ2HQJ32D542CQ8", createHand2().getDisplay());
+		assertEquals("SAKJ2HJT432D52CQ8", createHand3().getDisplay());
+		assertEquals("SAKJ2HQJ32DQ542C8", createHand4().getDisplay());
+	}
+
+	@Test
+	void testHas5CM() {
+		assertTrue(createHand1().has5CM());
+		assertFalse(createHand2().has5CM());
+		assertTrue(createHand3().has5CM());
+		assertFalse(createHand4().has5CM());
+	}
+
+	@Test
+	void testHasIntervention() {
+		assertEquals("1S", createHand1().intervention("1C"));
+		assertEquals("1S", createHand2().intervention("1C"));
+		assertEquals("1S", createHand3().intervention("1C"));
+		assertEquals("1S", createHand4().intervention("1C"));
+		assertEquals("1S", createHand1().intervention("1D"));
+		assertEquals("1S", createHand2().intervention("1D"));
+		assertEquals("1S", createHand3().intervention("1D"));
+		assertEquals("1S", createHand4().intervention("1D"));
+		assertEquals("1S", createHand1().intervention("1H"));
+		assertEquals("1S", createHand2().intervention("1H"));
+		assertEquals("1S", createHand3().intervention("1H"));
+		assertEquals("1S", createHand4().intervention("1H"));
+		assertEquals("PASS", createHand1().intervention("1S"));
+		assertEquals("PASS", createHand2().intervention("1S"));
+		assertEquals("PASS", createHand3().intervention("1S"));
+		assertEquals("PASS", createHand4().intervention("1S"));
+		for (int i = 0; i < 10; i++) {
+			Stock stock = new Stock();
+			Hand hand = stock.dealHand();
+			System.out.println(hand.getDisplay() + " " + hand.intervention("1C") + " " + hand.intervention("1D") + " "
+					+ hand.intervention("1H") + " " + hand.intervention("1S"));
+		}
+	}
+
+	@Test
+	void testOpen5CM() {
+		assertEquals("1S", createHand1().getOpen5CM());
+		assertEquals("1C", createHand2().getOpen5CM());
+		assertEquals("1H", createHand3().getOpen5CM());
+		assertEquals("1D", createHand4().getOpen5CM());
+	}
+
+	@Test
 	void testLTC() {
 		assertEquals(5, createHand1().getLTC());
 		assertEquals(8, createHand2().getLTC());
@@ -196,6 +267,7 @@ class ProbTest {
 		assertEquals(5.7, hist1X.mean() - 0.5, 0.5);
 	}
 
+	@Disabled
 	@Test
 	void landy() {
 		Histogram landy = new Histogram("Landy ", 10, 3.0, 1.0);
