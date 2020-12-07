@@ -104,6 +104,12 @@ class ProbTest {
 	}
 
 	@Test
+	void testCreateHand() throws Exception {
+		String h = "SAJ32H876DJ74C652";
+		assertEquals(h,(new Hand(h).getDisplay()));
+	}
+
+	@Test
 	void testCard() {
 		Card card = new Card(1, Suit.SPADES);
 		assertEquals(1, card.getDenomination());
@@ -113,6 +119,23 @@ class ProbTest {
 	@Test
 	void testCardEquality() {
 		assertTrue(new Card(1, Suit.SPADES).equals(new Card(1, Suit.SPADES)));
+	}
+	
+	@Test
+	void testResponse() throws Exception {
+		assertEquals("1D", new Hand("SA534H9D65432CAKQ").getResponse("1C"));
+		assertEquals("1S", new Hand("SA534H9D65432CAK2").getResponse("1C"));
+		assertEquals("1S", new Hand("SA534H93D6543CAK2").getResponse("1C"));
+		assertEquals("1N", new Hand("SA53H932D6543CAQ2").getResponse("1C"));
+		assertEquals("2N", new Hand("SA53H932D6543CAK2").getResponse("1C"));
+		assertEquals("2C", new Hand("SA53H932D654CAK32").getResponse("1C"));
+		assertEquals("2N", new Hand("SA53HK32D654CA932").getResponse("1C"));
+		assertEquals("3C", new Hand("S953HK32D2CA96543").getResponse("1C"));
+		assertEquals("2D", new Hand("S953HK32D965432CA").getResponse("1C"));
+		assertEquals("3D", new Hand("S953HK32DA965432C").getResponse("1C"));
+		assertEquals("2S", new Hand("ST96543H2K3D932CQ").getResponse("1C"));
+		assertEquals("3S", new Hand("ST965432HK3D932CQ").getResponse("1C"));
+		assertEquals("PASS", new Hand("ST965432HK3D932CJ").getResponse("1C"));
 	}
 
 	@Test
@@ -277,7 +300,7 @@ class ProbTest {
 			String bid = hand.getOpen();
 			if ("1N".equals(bid)) {
 				Hand defence = stock.dealHand();
-				bid = defence.getResponse("1N");
+				bid = defence.getOvercall("1N");
 				if ("2C".equals(bid)) {
 					landy.add(defence.getLTC());
 				}

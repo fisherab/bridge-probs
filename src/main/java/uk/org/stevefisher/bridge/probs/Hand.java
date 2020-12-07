@@ -30,6 +30,14 @@ public class Hand {
 
 	private boolean balanced;
 
+	private Suit longest;
+
+	private Suit longest2;
+
+	private int len;
+
+	private int len2;
+
 	private static Map<Suit, String> bumrubMap = Map.ofEntries(Map.entry(Suit.CLUBS, "1H"),
 			Map.entry(Suit.DIAMONDS, "1C"), Map.entry(Suit.HEARTS, "1D"), Map.entry(Suit.SPADES, "1D"));
 
@@ -39,9 +47,32 @@ public class Hand {
 			Map.entry("K", 1), Map.entry("Qxx", 2), Map.entry("Qx", 2), Map.entry("Q", 1), Map.entry("xxx", 3),
 			Map.entry("xx", 2), Map.entry("x", 1));
 
+	public Hand(String h) throws Exception {
+		if (h.length() != 17) {
+			throw new Exception("Hand defintion must have 17 characters");
+		}
+		Suit s = null;
+		for (char c : h.toCharArray()) {
+			if (c == 'S') {
+				s = Suit.SPADES;
+			} else if (c == 'H') {
+				s = Suit.HEARTS;
+			} else if (c == 'D') {
+				s = Suit.DIAMONDS;
+			} else if (c == 'C') {
+				s = Suit.CLUBS;
+			} else {
+				add(new Card(c, s));
+			}
+		}
+	}
+
+	public Hand() {
+	}
+
 	public void add(Card card) throws Exception {
 		if (!cards.add(card)) {
-			throw new Exception("Card already present");
+			throw new Exception("Card " + card + " already present");
 		}
 	}
 
@@ -97,6 +128,24 @@ public class Hand {
 			if (doubletons > 1) {
 				balanced = false;
 			}
+
+			// Find two longest suits
+			longest = null;
+			len = 0;
+			for (Suit suit : Suit.values()) {
+				if (longest == null || suitCards.get(suit).size() > len) {
+					longest = suit;
+					len = suitCards.get(suit).size();
+				}
+			}
+			longest2 = null;
+			len2 = 0;
+			for (Suit suit : Suit.values()) {
+				if (suit != longest && (longest2 == null || suitCards.get(suit).size() > len2)) {
+					longest2 = suit;
+					len2 = suitCards.get(suit).size();
+				}
+			}
 			inited = true;
 		}
 
@@ -120,24 +169,6 @@ public class Hand {
 				return "BIG";
 			} else {
 				return "PASS";
-			}
-		}
-
-		// Find two longest suits
-		Suit longest = null;
-		int len = 0;
-		for (Suit suit : Suit.values()) {
-			if (longest == null || suitCards.get(suit).size() > len) {
-				longest = suit;
-				len = suitCards.get(suit).size();
-			}
-		}
-		Suit longest2 = null;
-		int len2 = 0;
-		for (Suit suit : Suit.values()) {
-			if (suit != longest && (longest2 == null || suitCards.get(suit).size() > len2)) {
-				longest2 = suit;
-				len2 = suitCards.get(suit).size();
 			}
 		}
 
@@ -215,11 +246,63 @@ public class Hand {
 		return LTC;
 	}
 
-	public String getResponse(String opening) {
+	public String getOvercall(String opening) {
 		if (!"1N".equals(opening)) {
 			return "PASS";
 		}
 		return "2C";
+	}
+
+	public String getResponse(String opening) {
+		init();
+		logger.debug("Response for {} to {} {} hcp {} with {}{}s with C quality {}", getDisplay(), opening, balanced?" Bal":"!Bal", hcp, len, longest.name().charAt(0), 
+				getSQ(Suit.CLUBS));
+		if ("1C".equals(opening)) {
+
+			if (hcp == 5 || (hcp > 5 && hcp <= 9)) {
+				if (len >= 7) {
+					return "3" + longest.name().charAt(0);
+				}
+				if (len >= 6) {
+					if (longest == Suit.CLUBS) {
+						return "3C";
+					}
+					return "2" + longest.name().charAt(0);
+				}
+			}
+
+			if (hcp >= 11 && suitCards.get(Suit.CLUBS).size() >= 4 && getSQ(Suit.CLUBS) >= 6 && !has4CM()) {
+				return "2C";
+			}
+
+			if (hcp >= 6 && has4CM()) {
+				if (hcp < 12) {
+					if (suitCards.get(Suit.HEARTS).size() >= suitCards.get(Suit.SPADES).size()) {
+						return "1H";
+					} else {
+						return "1S";
+					}
+				} else {
+					return "1" + longest.name().charAt(0);
+				}
+			}
+
+			if (balanced && hcp >= 6 && !has4CM()) {
+				if (hcp <= 10) {
+					return "1N";
+				}
+
+				if (hcp <= 12) {
+					return "2N";
+				}
+
+				if (hcp <= 15) {
+					return "3N";
+				}
+			}
+
+		}
+		return "PASS";
 	}
 
 	public String getDisplay() {
@@ -249,24 +332,6 @@ public class Hand {
 
 	public String getOpen5CM() {
 		init();
-
-		// Find two longest suits
-		Suit longest = null;
-		int len = 0;
-		for (Suit suit : Suit.values()) {
-			if (longest == null || suitCards.get(suit).size() > len) {
-				longest = suit;
-				len = suitCards.get(suit).size();
-			}
-		}
-		Suit longest2 = null;
-		int len2 = 0;
-		for (Suit suit : Suit.values()) {
-			if (suit != longest && (longest2 == null || suitCards.get(suit).size() > len2)) {
-				longest2 = suit;
-				len2 = suitCards.get(suit).size();
-			}
-		}
 
 		if (balanced && hcp >= 15 && hcp <= 17) {
 			return "1N";
