@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,40 +26,44 @@ public class App {
 		logger.info("Starting");
 		List<Deal> deals = new ArrayList<Deal>();
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1S");
 		}
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2S");
 		}
 		
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "3H");
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2C");
 		}
 		
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1D");
 		}
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "3C");
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1N");
 		}
 		
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2N");
 		}
 		
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "3N");
+		}
+		
+		for (int i = 0; i < 12; i++) {
+			generateSupportXorXX(deals);
 		}
 		Collections.shuffle(deals);
 
@@ -86,6 +91,35 @@ public class App {
 
 	}
 
+	private void generateSupportXorXX(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!"1D".equals(open) && !"1C".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			if (!"PASS".equals(hand2.intervention(open))) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			String resp = hand3.getResponse(open);
+			if (! Set.of("1H","1S").contains(resp)) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			if ("PASS".equals(hand4.intervention(resp))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
+
+		
+	}
+
 	private void generate1m(List<Deal> deals, String response) {
 		boolean found = false;
 		while (!found) {
@@ -110,7 +144,6 @@ public class App {
 			found = true;
 			deals.add(new Deal(hand1, hand2, hand3, hand4));
 		}
-
 	}
 
 	private void addLine(PrintWriter lin, int handNum, int dealer, char vulnerability, Hand hand1, Hand hand2,

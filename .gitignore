@@ -7,4 +7,4 @@ build
 /.project
 /.classpath
 /bin/
-/minorOpeningsNI.lin
+/*.lin
