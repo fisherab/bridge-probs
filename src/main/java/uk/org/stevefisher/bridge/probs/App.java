@@ -33,7 +33,7 @@ public class App {
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2S");
 		}
-		
+
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "3H");
 		}
@@ -41,7 +41,7 @@ public class App {
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2C");
 		}
-		
+
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1D");
 		}
@@ -53,17 +53,29 @@ public class App {
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1N");
 		}
-		
+
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2N");
 		}
-		
+
 		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "3N");
 		}
-		
-		for (int i = 0; i < 12; i++) {
+
+		for (int i = 0; i < 0; i++) {
 			generateSupportXorXX(deals);
+		}
+
+		for (int i = 0; i < 3; i++) {
+			generate1MSupport(deals);
+		}
+
+		for (int i = 0; i < 3; i++) {
+			generate1MPassedSupport(deals);
+		}
+
+		for (int i = 0; i < 6; i++) {
+			generate1MOvercalledSupport(deals);
 		}
 		Collections.shuffle(deals);
 
@@ -91,6 +103,93 @@ public class App {
 
 	}
 
+	private void generate1MOvercalledSupport(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (Set.of("PASS", "X").contains(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			String resp = hand3.getResponse(open);
+			if ("PASS".equals(resp)) {
+				continue;
+			}
+			logger.debug("{} and {}", open, resp);
+			Hand hand4 = stock.dealHand();
+			if ("PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
+
+	}
+
+	private void generate1MPassedSupport(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!"PASS".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			open = hand2.getOpen5CM();
+			if (!"PASS".equals(open)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			open = hand3.getOpen5CM();
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
+	}
+
+	private void generate1MSupport(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			if (!"PASS".equals(hand2.intervention(open))) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			String resp = hand3.getResponse(open);
+			if ("PASS".equals(resp)) {
+				continue;
+			}
+			logger.debug("{} and {}", open, resp);
+			Hand hand4 = stock.dealHand();
+			if ("PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
+
+	}
+
 	private void generateSupportXorXX(List<Deal> deals) {
 		boolean found = false;
 		while (!found) {
@@ -106,7 +205,7 @@ public class App {
 			}
 			Hand hand3 = stock.dealHand();
 			String resp = hand3.getResponse(open);
-			if (! Set.of("1H","1S").contains(resp)) {
+			if (!Set.of("1H", "1S").contains(resp)) {
 				continue;
 			}
 			Hand hand4 = stock.dealHand();
@@ -116,8 +215,6 @@ public class App {
 			found = true;
 			deals.add(new Deal(hand1, hand2, hand3, hand4));
 		}
-
-		
 	}
 
 	private void generate1m(List<Deal> deals, String response) {

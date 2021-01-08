@@ -49,7 +49,7 @@ public class Hand {
 
 	public Hand(String h) throws Exception {
 		if (h.length() != 17) {
-			throw new Exception("Hand defintion must have 17 characters");
+			throw new Exception("Hand definition must have 17 characters");
 		}
 		Suit s = null;
 		for (char c : h.toCharArray()) {
@@ -255,8 +255,8 @@ public class Hand {
 
 	public String getResponse(String opening) {
 		init();
-		logger.debug("Response for {} to {} {} hcp {} with {}{}s with C quality {}", getDisplay(), opening, balanced?" Bal":"!Bal", hcp, len, longest.name().charAt(0), 
-				getSQ(Suit.CLUBS));
+		logger.debug("Response for {} to {} {} hcp {} with {}{}s with C quality {}", getDisplay(), opening,
+				balanced ? " Bal" : "!Bal", hcp, len, longest.name().charAt(0), getSQ(Suit.CLUBS));
 		if ("1C".equals(opening)) {
 
 			if (hcp == 5 || (hcp > 5 && hcp <= 9)) {
@@ -301,8 +301,39 @@ public class Hand {
 				}
 			}
 
+		} else if ("1D".equals(opening)) {
+			return "PASS"; // TODO
+		} else {
+			// 1 of a Major
+			logger.debug("Deal with {} opening", opening);
+			if (hcp< 4) return "PASS";
+			char sc = opening.charAt(1);
+			Suit s = getSuit(sc);
+			int length = suitCards.get(s).size();
+			if (length <= 2) return "PASS";
+			if (length == 3) {
+				if (hcp >= 5 && hcp <= 9) return "2" + sc;
+				if (hcp >= 10 && hcp <= 12) return "3C";
+			} else if (length ==4) {
+				if (hcp >= 4 && hcp <= 6) return "3" + sc;
+				if (hcp >= 7 && hcp <= 9) return s == Suit.SPADES? "3H": "2S";
+				if (hcp >= 10 && hcp <= 12) return "3D";
+				if (hcp >= 13) return "2N";	
+			} else if (length ==5) {
+				if (hcp >= 4 && hcp <= 9) return "4" + sc;
+			}
+			return "PASS";
+
 		}
 		return "PASS";
+	}
+
+	private Suit getSuit(char sc) {
+		for (Suit suit : Suit.values()) {
+			if (suit.name().charAt(0) == sc)
+				return suit;
+		}
+		return null;
 	}
 
 	public String getDisplay() {
@@ -378,6 +409,11 @@ public class Hand {
 		if (hcp < 5) {
 			return "PASS";
 		}
+		
+		if (hcp >= 17) {
+			return "X";
+		}
+		
 		Suit suitOpened = null;
 		for (Suit s : Suit.values()) {
 			if (s.name().charAt(0) == open.charAt(1)) {
@@ -414,7 +450,7 @@ public class Hand {
 		init();
 		int sq = suitCards.get(s).size();
 		for (Card c : suitCards.get(s)) {
-			if (c.getDenomination() > 10 || c.getDenomination() == 1) {
+			if (c.getDenomination() >= 10 || c.getDenomination() == 1) {
 				sq++;
 			}
 		}
@@ -425,5 +461,6 @@ public class Hand {
 		init();
 		return suitCards.get(Suit.SPADES).size() >= 4 || suitCards.get(Suit.HEARTS).size() >= 4;
 	}
+
 
 }

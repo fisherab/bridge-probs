@@ -7,10 +7,10 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-	 <Logger name="uk.org.stevefisher.bridge.probs.Hand" level="error" additivity="false">
+	 <Logger name="uk.org.stevefisher.bridge.probs.Handz" level="error" additivity="false">
       <AppenderRef ref="Console"/>
     </Logger>
-		<Root level="info">
+		<Root level="debug">
 			<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>
