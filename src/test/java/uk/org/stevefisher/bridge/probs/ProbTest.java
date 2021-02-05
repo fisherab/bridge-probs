@@ -300,7 +300,7 @@ class ProbTest {
 			String bid = hand.getOpen();
 			if ("1N".equals(bid)) {
 				Hand defence = stock.dealHand();
-				bid = defence.getOvercall("1N");
+//				bid = defence.getOvercall("1N");
 				if ("2C".equals(bid)) {
 					landy.add(defence.getLTC());
 				}

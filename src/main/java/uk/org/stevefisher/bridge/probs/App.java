@@ -66,17 +66,61 @@ public class App {
 			generateSupportXorXX(deals);
 		}
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MSupport(deals);
 		}
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MPassedSupport(deals);
 		}
 
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalledSupport(deals);
 		}
+
+		Histogram hist1N = new Histogram("Intervention after weak 2 (P23X)", 10, 0.0, 1.0);
+		for (int i = 0; i < 0; i++) {
+			generateWeakTwo(deals, 'P', hist1N);
+		}
+		for (int i = 0; i < 0; i++) {
+			generateWeakTwo(deals, '2', hist1N);
+		}
+		for (int i = 0; i < 0; i++) {
+			generateWeakTwo(deals, '3', hist1N);
+		}
+		for (int i = 0; i < 0; i++) {
+			generateWeakTwo(deals, 'X', hist1N);
+		}
+		System.out.println(hist1N);
+
+		for (int i = 0; i < 0; i++) {
+			generate2over1(deals);
+		}
+
+		for (int i = 0; i < 4; i++) {
+			generate1NT(deals, "2C", 8, 9);
+		}
+		
+		for (int i = 0; i < 4; i++) {
+			generate1NT(deals, "2C", 10, 40);
+		}
+		
+		for (int i = 0; i < 1; i++) {
+			generate1NT(deals, "3N", 10, 40);
+		}
+		
+		for (int i = 0; i < 1; i++) {
+			generate1NT(deals, "2N", 0, 40);
+		}
+		
+		for (int i = 0; i < 1; i++) {
+			generate1NT(deals, "2D", 0, 40);
+		}
+		
+		for (int i = 0; i < 1; i++) {
+			generate1NT(deals, "4N", 0, 40);
+		}
+
 		Collections.shuffle(deals);
 
 		int handNum = 0;
@@ -100,6 +144,89 @@ public class App {
 			}
 		}
 		logger.info("Done " + deals.size());
+
+	}
+
+	private void generate1NT(List<Deal> deals, String response, int minHcp, int maxHcp) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!"1N".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.getHcp() < 8 ? "PASS" : hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			if (hand3.getHcp() < minHcp || hand3.getHcp() > maxHcp) {
+				continue;
+			}
+			String resp = hand3.getResponse(open);
+			if (!resp.equals(response)) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
+
+	}
+
+	private void generate2over1(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1D", "1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			if (!"PASS".equals(hand2.intervention(open))) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			if (hand3.getHcp() < 12) {
+				continue;
+			}
+			String resp = hand3.getResponse(open);
+			if (!Set.of("2C", "2D", "2H", "2S").contains(resp)) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
+
+	}
+
+	private void generateWeakTwo(List<Deal> deals, char interv, Histogram hist) {
+
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (open.charAt(0) != '2') {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			char letter = intervention.charAt(0);
+			int offset = "P23X".indexOf(letter);
+			hist.add(offset);
+			if (interv != letter && interv != ' ') {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4));
+		}
 
 	}
 

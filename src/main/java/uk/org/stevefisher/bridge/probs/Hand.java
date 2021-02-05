@@ -246,86 +246,168 @@ public class Hand {
 		return LTC;
 	}
 
-	public String getOvercall(String opening) {
-		if (!"1N".equals(opening)) {
-			return "PASS";
-		}
-		return "2C";
-	}
-
 	public String getResponse(String opening) {
 		init();
-		logger.debug("Response for {} to {} {} hcp {} with {}{}s with C quality {}", getDisplay(), opening,
-				balanced ? " Bal" : "!Bal", hcp, len, longest.name().charAt(0), getSQ(Suit.CLUBS));
-		if ("1C".equals(opening)) {
 
-			if (hcp == 5 || (hcp > 5 && hcp <= 9)) {
-				if (len >= 7) {
-					return "3" + longest.name().charAt(0);
-				}
-				if (len >= 6) {
-					if (longest == Suit.CLUBS) {
-						return "3C";
-					}
-					return "2" + longest.name().charAt(0);
-				}
-			}
+		String resp = null;
 
-			if (hcp >= 11 && suitCards.get(Suit.CLUBS).size() >= 4 && getSQ(Suit.CLUBS) >= 6 && !has4CM()) {
-				return "2C";
-			}
-
-			if (hcp >= 6 && has4CM()) {
-				if (hcp < 12) {
-					if (suitCards.get(Suit.HEARTS).size() >= suitCards.get(Suit.SPADES).size()) {
-						return "1H";
-					} else {
-						return "1S";
-					}
+		if ("1N".equals(opening)) {
+			if (suitCards.get(Suit.SPADES).size() >= 5) {
+				resp = "2H";
+			} else if (suitCards.get(Suit.HEARTS).size() >= 5) {
+				resp = "2D";
+			} else if (suitCards.get(Suit.DIAMONDS).size() >= 6) {
+				resp = "2N";
+			} else if (suitCards.get(Suit.CLUBS).size() >= 6) {
+				resp = "2S";
+			} else if (hcp >= 8 && hcp <= 9) {
+				resp = "2C";
+			} else if (hcp >= 16) {
+				resp = "4N";
+			} else if (hcp >= 10) {
+				if (has4CM()) {
+					resp = "2C";
 				} else {
-					return "1" + longest.name().charAt(0);
+					resp = "3N";
 				}
 			}
+		} else if ("1C".equals(opening)) {
 
-			if (balanced && hcp >= 6 && !has4CM()) {
-				if (hcp <= 10) {
-					return "1N";
+			if (has4CM()) { // 4CM preferred to preempt
+				if (hcp >= 6) {
+					if (hcp < 12) {
+						if (suitCards.get(Suit.HEARTS).size() >= suitCards.get(Suit.SPADES).size()) {
+							resp = "1H";
+						} else {
+							resp = "1S";
+						}
+					} else {
+						resp = "1" + longest.name().charAt(0);
+					}
 				}
 
-				if (hcp <= 12) {
-					return "2N";
+			} else { // No 4CM
+
+				if (hcp >= 5 && hcp <= 9) { // Preempt
+					if (len >= 7) {
+						resp = "3" + longest.name().charAt(0);
+					} else if (len >= 6) {
+						if (longest == Suit.CLUBS) {
+							resp = "3C";
+						} else {
+							resp = "2" + longest.name().charAt(0);
+						}
+					}
 				}
 
-				if (hcp <= 15) {
-					return "3N";
+				if (resp == null && hcp >= 11 && suitCards.get(Suit.CLUBS).size() >= 4) {
+					resp = "2C"; // Inverted minor
+				} else if (balanced && hcp >= 6) {
+					if (hcp <= 10) {
+						resp = "1N";
+					} else if (hcp <= 12) {
+						resp = "2N";
+					} else if (hcp <= 15) {
+						resp = "3N";
+					}
 				}
 			}
 
 		} else if ("1D".equals(opening)) {
-			return "PASS"; // TODO
+
+			if (has4CM()) {
+				if (hcp >= 6) {
+					if (suitCards.get(Suit.HEARTS).size() >= suitCards.get(Suit.SPADES).size()) {
+						resp = "1H";
+					} else {
+						resp = "1S";
+					}
+					if (hcp >= 12 && !Set.of(Suit.HEARTS, Suit.SPADES).contains(longest)) {
+						resp = null;
+					}
+				}
+
+			}
+
+			if (resp == null && hcp > 5 && hcp <= 9) { // Preempt
+				if (len >= 7) {
+					resp = "3" + longest.name().charAt(0);
+				} else if (len >= 6) {
+					if (longest == Suit.DIAMONDS) {
+						resp = "3D";
+					} else {
+						resp = "2" + longest.name().charAt(0);
+					}
+				}
+			}
+
+			if (resp == null && hcp >= 12 && longest == Suit.CLUBS) {
+				resp = "2C"; // Two over one
+			}
+
+			if (resp == null && suitCards.get(Suit.DIAMONDS).size() >= 4) {
+				if (hcp >= 11) {
+					resp = "2D"; // Inverted minor
+				} else {
+					resp = "3D";
+				}
+			} else if (balanced && hcp >= 6) {
+				if (hcp <= 10) {
+					resp = "1N";
+				} else if (hcp <= 12) {
+					resp = "2N";
+				} else if (hcp <= 15) {
+					resp = "3N";
+				}
+			}
+
 		} else {
 			// 1 of a Major
-			logger.debug("Deal with {} opening", opening);
-			if (hcp< 4) return "PASS";
+			if (hcp < 4) {
+				resp = "PASS";
+			}
 			char sc = opening.charAt(1);
 			Suit s = getSuit(sc);
 			int length = suitCards.get(s).size();
-			if (length <= 2) return "PASS";
-			if (length == 3) {
-				if (hcp >= 5 && hcp <= 9) return "2" + sc;
-				if (hcp >= 10 && hcp <= 12) return "3C";
-			} else if (length ==4) {
-				if (hcp >= 4 && hcp <= 6) return "3" + sc;
-				if (hcp >= 7 && hcp <= 9) return s == Suit.SPADES? "3H": "2S";
-				if (hcp >= 10 && hcp <= 12) return "3D";
-				if (hcp >= 13) return "2N";	
-			} else if (length ==5) {
-				if (hcp >= 4 && hcp <= 9) return "4" + sc;
+
+			if (resp == null && length == 3) {
+				if (hcp >= 5 && hcp <= 9) {
+					resp = "2" + sc;
+				}
+				if (hcp >= 10 && hcp <= 40) { // TODO change 40
+					resp = "3C";
+				}
+				resp = "PASS"; // TODO
+			} else if (resp == null && length == 4) {
+				if (hcp >= 4 && hcp <= 6) {
+					resp = "3" + sc;
+				} else if (hcp >= 7 && hcp <= 9) {
+					resp = s == Suit.SPADES ? "3H" : "2S";
+				} else if (hcp >= 10 && hcp <= 12) {
+					resp = "3D";
+				} else if (hcp >= 40) { // TO DO change 13
+					resp = "2N";
+				}
+				resp = "PASS"; // TODO
+			} else if (resp == null & length == 5) {
+				if (hcp >= 4 && hcp <= 9) {
+					resp = "4" + sc;
+				}
 			}
-			return "PASS";
+			if (resp == null && s == Suit.HEARTS && suitCards.get(Suit.SPADES).size() >= 4 && hcp >= 6) {
+				resp = "1S";
+			}
+			if (resp == null && hcp >= 12) { // Two over one
+				resp = "2" + longest.name().charAt(0);
+			}
 
 		}
-		return "PASS";
+		if (resp == null) {
+			resp = "PASS";
+		}
+		logger.debug("Response for {} to {} {} hcp {} with {}{}s => {}", getDisplay(), opening,
+				balanced ? " Bal" : "!Bal", hcp, len, longest.name().charAt(0), resp);
+		return resp;
 	}
 
 	private Suit getSuit(char sc) {
@@ -364,6 +446,33 @@ public class Hand {
 	public String getOpen5CM() {
 		init();
 
+		if (hcp >= 5 && hcp <= 9 & len == 6) {
+			Set<Card> suit = suitCards.get(longest);
+			int top3 = 0;
+			int top5 = 0;
+			if (suit.contains(new Card('A', longest))) {
+				top3++;
+				top5++;
+			}
+			if (suit.contains(new Card('K', longest))) {
+				top3++;
+				top5++;
+			}
+			if (suit.contains(new Card('Q', longest))) {
+				top3++;
+				top5++;
+			}
+			if (suit.contains(new Card('J', longest))) {
+				top5++;
+			}
+			if (suit.contains(new Card('T', longest))) {
+				top5++;
+			}
+			if (top3 >= 2 || top5 >= 3) {
+				return "2" + longest.name().charAt(0);
+			}
+		}
+
 		if (balanced && hcp >= 15 && hcp <= 17) {
 			return "1N";
 		}
@@ -374,7 +483,7 @@ public class Hand {
 		}
 
 		if (hcp < 12 && hcp + len + len2 < 20) {
-			// TODO Encode preempts
+			// TODO Encode preempts at 3 or higher level
 			return "PASS";
 		}
 
@@ -406,14 +515,46 @@ public class Hand {
 
 	public String intervention(String open) {
 		init();
-		if (hcp < 5) {
-			return "PASS";
+
+		if ("1N".equals(open)) {
+			String result = null;
+			int ls = suitCards.get(Suit.SPADES).size();
+			int lh = suitCards.get(Suit.HEARTS).size();
+			int lc = suitCards.get(Suit.CLUBS).size();
+			int ld = suitCards.get(Suit.DIAMONDS).size();
+			if (hcp >= 16) {
+				result = "X";
+			}
+			if (result == null && hcp >= 8 && ls >= 5 && lh >= 5) {
+				result = "2C";
+			}
+			if (result == null && hcp >= 9 && ls + lh >= 9 && ls >= 4 && lh >= 4) {
+				result = "2C";
+			}
+			if (result == null && hcp < 10) {
+				result = "PASS";
+			}
+			if (result == null && (ls >= 6 || lh >= 6) && len2 <= 4) {
+				result = "2D";
+			}
+			boolean fourCardMinor = lc >= 4 || ld >= 4;
+			if (result == null && ls >= 5 && fourCardMinor) {
+				result = "2S";
+			}
+			if (result == null && lh >= 5 && fourCardMinor) {
+				result = "2H";
+			}
+			if (result == null && lc >= 5 && ld >= 5) {
+				result = "2N";
+			}
+			if (result == null) {
+				result = "PASS";
+			}
+			logger.debug("Intervention over {} on {} (hcp = {}, len = {},{},{},{} is {}", open, getDisplay(), hcp, ls,
+					lh, ld, lc, result);
+			return result;
 		}
-		
-		if (hcp >= 17) {
-			return "X";
-		}
-		
+
 		Suit suitOpened = null;
 		for (Suit s : Suit.values()) {
 			if (s.name().charAt(0) == open.charAt(1)) {
@@ -422,28 +563,70 @@ public class Hand {
 			}
 		}
 
-		// Consider overcall
-		for (Suit s : Suit.values()) {
-			if (s != suitOpened) {
-				int sqNeeded = s.compareTo(suitOpened) < 0 ? 8 : 7;
-				if (getSQ(s) >= sqNeeded) {
-					return "" + (sqNeeded - 6) + s.name().charAt(0);
-				}
+		char level = open.charAt(0);
+		if (level == '1') {
+			if (hcp < 5) {
+				return "PASS";
 			}
-		}
-		// Consider double
-		if (hcp >= 12 && suitCards.get(suitOpened).size() < 3) {
+
+			if (hcp >= 17) {
+				return "X";
+			}
+
+			// Consider overcall
 			for (Suit s : Suit.values()) {
-				if (s != suitOpened) {
-					if (suitCards.get(s).size() < 3) {
-						return "PASS";
+				if (s != suitOpened && s == longest) {
+					int sqNeeded = s.compareTo(suitOpened) < 0 ? 8 : 7;
+					if (getSQ(s) >= sqNeeded) {
+						return "" + (sqNeeded - 6) + s.name().charAt(0);
 					}
 				}
 			}
-			return "X";
+			// Consider double
+			if (hcp >= 12 && suitCards.get(suitOpened).size() < 3) {
+				for (Suit s : Suit.values()) {
+					if (s != suitOpened) {
+						if (suitCards.get(s).size() < 3) {
+							return "PASS";
+						}
+					}
+				}
+				return "X";
+			}
+		} else if (level == '2') {
+			if (hcp < 12) {
+				return "PASS";
+			}
+
+			// Consider overcall
+			for (Suit s : Suit.values()) { // This is selecting the wrong suit!
+				if (s != suitOpened && s == longest) {
+					int levelOf = s.compareTo(suitOpened) < 0 ? 3 : 2;
+					if (len >= 6 || has5CM()) {
+						if (levelOf == 2) {
+							return "2" + s.name().charAt(0);
+						}
+						if (hcp >= 15) { // Level 3 needed
+							return "3" + s.name().charAt(0);
+						}
+					}
+				}
+			}
+			// Consider double
+			if (suitCards.get(suitOpened).size() < 3) {
+				for (Suit s : Suit.values()) {
+					if (s != suitOpened) {
+						if (suitCards.get(s).size() < 3) {
+							return "PASS";
+						}
+					}
+				}
+				return "X";
+			}
 		}
 
 		return "PASS";
+
 	}
 
 	public int getSQ(Suit s) {
@@ -461,6 +644,5 @@ public class Hand {
 		init();
 		return suitCards.get(Suit.SPADES).size() >= 4 || suitCards.get(Suit.HEARTS).size() >= 4;
 	}
-
 
 }

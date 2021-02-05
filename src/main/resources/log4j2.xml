@@ -7,11 +7,14 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-	 <Logger name="uk.org.stevefisher.bridge.probs.Handz" level="error" additivity="false">
-      <AppenderRef ref="Console"/>
-    </Logger>
-		<Root level="debug">
-			<AppenderRef ref="Console" />
+	     <Logger name="uk.org.stevefisher.bridge.probs.App" level="debug" additivity="false">
+	     	<AppenderRef ref="Console"/>
+    	</Logger>
+	    <Logger name="uk.org.stevefisher.bridge.probs.Hand" level="debug" additivity="false">
+        	<AppenderRef ref="Console"/>
+    	</Logger>
+		<Root level="error">
+	  		<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>
 </Configuration>
