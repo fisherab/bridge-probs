@@ -492,7 +492,7 @@ public class Hand {
 		boolean mH = lH >= 5;
 		boolean mS = lS >= 5;
 		if (mH && mS) {
-			return lH >= lS ? "1H" : "1S";
+			return lH > lS ? "1H" : "1S";
 		} else if (mH) {
 			return "1H";
 		} else if (mS) {
@@ -516,12 +516,13 @@ public class Hand {
 	public String intervention(String open) {
 		init();
 
+		String result = null;
+		int ls = suitCards.get(Suit.SPADES).size();
+		int lh = suitCards.get(Suit.HEARTS).size();
+		int lc = suitCards.get(Suit.CLUBS).size();
+		int ld = suitCards.get(Suit.DIAMONDS).size();
 		if ("1N".equals(open)) {
-			String result = null;
-			int ls = suitCards.get(Suit.SPADES).size();
-			int lh = suitCards.get(Suit.HEARTS).size();
-			int lc = suitCards.get(Suit.CLUBS).size();
-			int ld = suitCards.get(Suit.DIAMONDS).size();
+
 			if (hcp >= 16) {
 				result = "X";
 			}
@@ -555,78 +556,96 @@ public class Hand {
 			return result;
 		}
 
-		Suit suitOpened = null;
-		for (Suit s : Suit.values()) {
-			if (s.name().charAt(0) == open.charAt(1)) {
-				suitOpened = s;
-				break;
-			}
-		}
+		Suit suitOpened = getSuitFromBid(open);
 
 		char level = open.charAt(0);
 		if (level == '1') {
 			if (hcp < 5) {
-				return "PASS";
-			}
-
-			if (hcp >= 17) {
-				return "X";
+				result = "PASS";
+			} else if (hcp >= 17) {
+				result = "X";
 			}
 
 			// Consider overcall
-			for (Suit s : Suit.values()) {
-				if (s != suitOpened && s == longest) {
-					int sqNeeded = s.compareTo(suitOpened) < 0 ? 8 : 7;
-					if (getSQ(s) >= sqNeeded) {
-						return "" + (sqNeeded - 6) + s.name().charAt(0);
+			if (result == null) {
+				for (Suit s : Suit.values()) {
+					if (s != suitOpened && s == longest) {
+						int sqNeeded = s.compareTo(suitOpened) < 0 ? 8 : 7;
+						if (getSQ(s) >= sqNeeded && len >= 5) {
+							result = "" + (sqNeeded - 6) + s.name().charAt(0);
+							break;
+						}
 					}
 				}
 			}
 			// Consider double
-			if (hcp >= 12 && suitCards.get(suitOpened).size() < 3) {
-				for (Suit s : Suit.values()) {
-					if (s != suitOpened) {
-						if (suitCards.get(s).size() < 3) {
-							return "PASS";
+			if (result == null) {
+				if (hcp >= 12 && suitCards.get(suitOpened).size() < 3) {
+					for (Suit s : Suit.values()) {
+						if (s != suitOpened) {
+							if (suitCards.get(s).size() < 3) {
+								result = "PASS";
+								break;
+							}
 						}
 					}
+
+					if (result == null) {
+						result = "X";
+					}
 				}
-				return "X";
 			}
 		} else if (level == '2') {
-			if (hcp < 12) {
-				return "PASS";
+			if (result == null && hcp < 12) {
+				result = "PASS";
 			}
 
 			// Consider overcall
-			for (Suit s : Suit.values()) { // This is selecting the wrong suit!
-				if (s != suitOpened && s == longest) {
-					int levelOf = s.compareTo(suitOpened) < 0 ? 3 : 2;
-					if (len >= 6 || has5CM()) {
-						if (levelOf == 2) {
-							return "2" + s.name().charAt(0);
-						}
-						if (hcp >= 15) { // Level 3 needed
-							return "3" + s.name().charAt(0);
+			if (result == null) {
+				for (Suit s : Suit.values()) { // This is selecting the wrong suit!
+					if (s != suitOpened && s == longest) {
+						int levelOf = s.compareTo(suitOpened) < 0 ? 3 : 2;
+						if (len >= 6 || has5CM()) {
+							if (levelOf == 2) {
+								result = "2" + s.name().charAt(0);
+								break;
+							}
+							if (hcp >= 15) { // Level 3 needed
+								result = "3" + s.name().charAt(0);
+								break;
+							}
 						}
 					}
 				}
 			}
 			// Consider double
-			if (suitCards.get(suitOpened).size() < 3) {
-				for (Suit s : Suit.values()) {
-					if (s != suitOpened) {
-						if (suitCards.get(s).size() < 3) {
-							return "PASS";
+			if (result == null) {
+				if (suitCards.get(suitOpened).size() < 3) {
+					for (Suit s : Suit.values()) {
+						if (s != suitOpened) {
+							if (suitCards.get(s).size() < 3) {
+								result = "PASS";
+								break;
+							}
 						}
 					}
+					if (result == null) {
+						return "X";
+					}
 				}
-				return "X";
 			}
 		}
+		if (result == null) {
+			result = "PASS";
+		}
+		logger.debug("Intervention over {} on {} (hcp = {}, len = {},{},{},{} is {}", open, getDisplay(), hcp, ls, lh,
+				ld, lc, result);
+		return result;
 
-		return "PASS";
+	}
 
+	private Suit getSuitFromBid(String bid) {
+		return getSuit(bid.charAt(1));
 	}
 
 	public int getSQ(Suit s) {
@@ -643,6 +662,12 @@ public class Hand {
 	public boolean has4CM() {
 		init();
 		return suitCards.get(Suit.SPADES).size() >= 4 || suitCards.get(Suit.HEARTS).size() >= 4;
+	}
+
+	public int getCount(String bid) {
+		init();
+		Suit suit = getSuitFromBid(bid);
+		return suit == null ? -1 : suitCards.get(suit).size();
 	}
 
 }
