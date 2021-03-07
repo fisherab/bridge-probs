@@ -26,7 +26,7 @@ public class App {
 		logger.info("Starting");
 		List<Deal> deals = new ArrayList<Deal>();
 
-		for (int i = 0; i < 0; i++) {
+		for (int i = 0; i < 1; i++) {
 			generate1m(deals, "1S");
 		}
 
@@ -38,7 +38,7 @@ public class App {
 			generate1m(deals, "3H");
 		}
 
-		for (int i = 0; i < 0; i++) {
+		for (int i = 0; i < 2; i++) {
 			generate1m(deals, "2C");
 		}
 
@@ -50,7 +50,7 @@ public class App {
 			generate1m(deals, "3C");
 		}
 
-		for (int i = 0; i < 0; i++) {
+		for (int i = 0; i < 1; i++) {
 			generate1m(deals, "1N");
 		}
 
@@ -121,28 +121,40 @@ public class App {
 			generate1NT(deals, "4N", 0, 40);
 		}
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalled(deals, 0, 2, 0, 40);
 		}
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalled(deals, 3, 3, 8, 9);
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalled(deals, 3, 3, 10, 40);
 		}
-		
-		for (int i = 0; i < 1; i++) {
+
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalled(deals, 4, 13, 0, 3);
 		}
-		
-		for (int i = 0; i < 2; i++) {
+
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalled(deals, 4, 13, 4, 9);
 		}
-		
-		for (int i = 0; i < 5; i++) {
+
+		for (int i = 0; i < 0; i++) {
 			generate1MOvercalled(deals, 4, 13, 10, 40);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generate1MDoubled(deals);
+		}
+
+		for (int i = 0; i < 4; i++) {
+			generate1mOvercalled(deals, 0, 13, 4, 40);
+		}
+
+		for (int i = 0; i < 4; i++) {
+			generate1mDoubled(deals);
 		}
 
 		Collections.shuffle(deals);
@@ -165,10 +177,95 @@ public class App {
 					addLine(lin, handNum, dealer, "bone".charAt(rand.nextInt(4)), deal.getHand2(), deal.getHand3(),
 							deal.getHand4());
 				}
+				System.out.println(deal);
 			}
 		}
 		logger.info("Done " + deals.size());
 
+	}
+
+	private void generate1mDoubled(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1C", "1D").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"X".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+
+			if (hand3.getHcp() < 4) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+		}
+
+	}
+
+	private void generate1mOvercalled(List<Deal> deals, int minSupport, int maxSupport, int minHcp, int maxHcp) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1C", "1D").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (Set.of("PASS", "X").contains(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			int n = hand3.getCount(open);
+			if (n < minSupport || n > maxSupport) {
+				continue;
+			}
+			int hcp = hand3.getHcp();
+			if (hcp < minHcp || hcp > maxHcp) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+		}
+
+	}
+
+	private void generate1MDoubled(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"X".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+
+			if (hand3.getHcp() < 4) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+		}
 	}
 
 	private void generate1MOvercalled(List<Deal> deals, int minSupport, int maxSupport, int minHcp, int maxHcp) {
@@ -197,9 +294,8 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
-
 	}
 
 	private void generate1NT(List<Deal> deals, String response, int minHcp, int maxHcp) {
@@ -226,7 +322,7 @@ public class App {
 			}
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 
 	}
@@ -241,7 +337,8 @@ public class App {
 				continue;
 			}
 			Hand hand2 = stock.dealHand();
-			if (!"PASS".equals(hand2.intervention(open))) {
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
 				continue;
 			}
 			Hand hand3 = stock.dealHand();
@@ -254,7 +351,7 @@ public class App {
 			}
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 
 	}
@@ -280,7 +377,7 @@ public class App {
 			Hand hand3 = stock.dealHand();
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 
 	}
@@ -310,7 +407,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 
 	}
@@ -335,11 +432,12 @@ public class App {
 				continue;
 			}
 			Hand hand4 = stock.dealHand();
-			if (!"PASS".equals(hand4.intervention(open))) {
+			String intervention = hand4.intervention(open);
+			if (!"PASS".equals(intervention)) {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 	}
 
@@ -353,7 +451,8 @@ public class App {
 				continue;
 			}
 			Hand hand2 = stock.dealHand();
-			if (!"PASS".equals(hand2.intervention(open))) {
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
 				continue;
 			}
 			Hand hand3 = stock.dealHand();
@@ -367,7 +466,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 
 	}
@@ -382,7 +481,8 @@ public class App {
 				continue;
 			}
 			Hand hand2 = stock.dealHand();
-			if (!"PASS".equals(hand2.intervention(open))) {
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
 				continue;
 			}
 			Hand hand3 = stock.dealHand();
@@ -395,7 +495,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 	}
 
@@ -409,7 +509,8 @@ public class App {
 				continue;
 			}
 			Hand hand2 = stock.dealHand();
-			if (!"PASS".equals(hand2.intervention(open))) {
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
 				continue;
 			}
 			Hand hand3 = stock.dealHand();
@@ -421,7 +522,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
 		}
 	}
 
