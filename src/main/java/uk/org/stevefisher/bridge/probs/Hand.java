@@ -67,6 +67,20 @@ public class Hand {
 		}
 	}
 
+	public void setPBN(String h) throws Exception {
+		if (h.length() != 16) {
+			throw new Exception("PBN Hand definition must have 16 characters");
+		}
+		Suit s = Suit.SPADES;
+		for (char c : h.toCharArray()) {
+			if (c == '.') {
+				s = Suit.values()[s.ordinal() - 1];
+			} else {
+				add(new Card(c, s));
+			}
+		}
+	}
+
 	public Hand() {
 	}
 
@@ -149,6 +163,11 @@ public class Hand {
 			inited = true;
 		}
 
+	}
+
+	public boolean isBalanced() {
+		init();
+		return balanced;
 	}
 
 	public String getOpen() {
@@ -282,7 +301,11 @@ public class Hand {
 							resp = "1S";
 						}
 					} else {
-						resp = "1" + longest.name().charAt(0);
+						if (longest == Suit.CLUBS) {
+							resp = "2C";
+						} else {
+							resp = "1" + longest.name().charAt(0);
+						}
 					}
 				}
 
@@ -443,7 +466,7 @@ public class Hand {
 		return suitCards.get(Suit.SPADES).size() >= 5 || suitCards.get(Suit.HEARTS).size() >= 5;
 	}
 
-	public String getOpen5CM() {
+	public String getOpen5CM(int minHCP) {
 		init();
 
 		if (hcp >= 5 && hcp <= 9 & len == 6) {
@@ -482,7 +505,7 @@ public class Hand {
 			return "BIG";
 		}
 
-		if (hcp < 12 && hcp + len + len2 < 20) {
+		if (hcp < minHCP && hcp + len + len2 < 20) {
 			// TODO Encode preempts at 3 or higher level
 			return "PASS";
 		}
@@ -668,6 +691,68 @@ public class Hand {
 		init();
 		Suit suit = getSuitFromBid(bid);
 		return suit == null ? -1 : suitCards.get(suit).size();
+	}
+
+	/**
+	 * This is just for the special case following 1M where you don't have 3 or 4
+	 * card support
+	 */
+	public String get1NPeterResponse(String opening) {
+		init();
+
+		String resp = null;
+
+		// 1 of a Major
+		if (hcp < 5) {
+			resp = "PASS";
+		}
+		if (hcp > 11) {
+			resp = "OTHER";
+		}
+		char sc = opening.charAt(1);
+		Suit s = getSuit(sc);
+		int length = suitCards.get(s).size();
+
+		if (resp == null && length >= 3) {
+			resp = "OTHER";
+		} else if (s == Suit.HEARTS && suitCards.get(Suit.SPADES).size() >= 4) {
+			resp = "1S";
+		}
+
+		if (resp == null) {
+			resp = "1N";
+		}
+		logger.debug("Response for {} to {} {} hcp {} with {}{}s => {}", getDisplay(), opening,
+				balanced ? " Bal" : "!Bal", hcp, len, longest.name().charAt(0), resp);
+		return resp;
+	}
+
+	public String getCards(Suit s) {
+		init();
+		String result = "";
+		cards = suitCards.get(s);
+
+		if (cards.contains(new Card('T', s))) {
+			if (!result.isEmpty()) {
+				result += " ";
+			}
+			result += "10";
+		}
+		for (int i = 13; i > 0; i--) {
+			if (i != 10) {
+				if (cards.contains(new Card(i, s))) {
+					if (!result.isEmpty()) {
+						result += " ";
+					}
+					result += Card.nameOf(i);
+				}
+			}
+		}
+		return result;
+	}
+
+	public String getOpen5CM() {
+		return getOpen5CM(12);
 	}
 
 }

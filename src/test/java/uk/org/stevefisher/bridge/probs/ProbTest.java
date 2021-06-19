@@ -289,6 +289,46 @@ class ProbTest {
 		logger.info("Mean: " + Double.toString(hist1X.mean() - 0.5));
 		assertEquals(5.7, hist1X.mean() - 0.5, 0.5);
 	}
+	
+	@Test
+	void openingOneOfSuit5CM() {
+		Histogram hist1N = new Histogram("1N opener LTC 5CM", 10, 3.0, 1.0);
+		Histogram hist1C = new Histogram("1C opener LTC 5CM", 10, 0, 1.0);
+		Histogram hist1D = new Histogram("1D opener LTC 5CM", 10, 0, 1.0);
+		Histogram hist1H = new Histogram("1H opener LTC 5CM", 10, 0, 1.0);
+		Histogram hist1S = new Histogram("1S opener LTC 5CM", 10, 0, 1.0);
+		for (int i = 1; i < 100000; i++) {
+			Stock stock = new Stock();
+			Hand hand = stock.dealHand();
+			String bid = hand.getOpen5CM();
+			if ("1N".equals(bid)) {
+				hist1N.add(hand.getLTC());
+			} else if ("1C".equals(bid)) {
+				hist1C.add(hand.getLTC());
+			} else if ("1D".equals(bid)) {
+				hist1D.add(hand.getLTC());
+			}else if ("1H".equals(bid)) {
+				hist1H.add(hand.getLTC());
+			}else if ("1S".equals(bid)) {
+				hist1S.add(hand.getLTC());
+			}
+		}
+		logger.info(hist1N);
+		logger.info("Mean: " + Double.toString(hist1N.mean() - 0.5));
+//		assertEquals(7.5, hist1N.mean() - 0.5, 0.5);
+		logger.info(hist1C);
+		logger.info("Mean: " + Double.toString(hist1C.mean() - 0.5));
+//		assertEquals(5.7, hist1C.mean() - 0.5, 0.5);
+		logger.info(hist1D);
+		logger.info("Mean: " + Double.toString(hist1D.mean() - 0.5));
+//		assertEquals(5.7, hist1D.mean() - 0.5, 0.5);
+		logger.info(hist1H);
+		logger.info("Mean: " + Double.toString(hist1H.mean() - 0.5));
+//		assertEquals(5.7, hist1H.mean() - 0.5, 0.5);
+		logger.info(hist1S);
+		logger.info("Mean: " + Double.toString(hist1S.mean() - 0.5));
+//		assertEquals(5.7, hist1S.mean() - 0.5, 0.5);
+	}
 
 	@Disabled
 	@Test

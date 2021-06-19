@@ -1,5 +1,9 @@
 package uk.org.stevefisher.bridge.probs;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -17,16 +21,16 @@ public class App {
 	Random rand = new Random();
 	private static final Logger logger = LogManager.getLogger(App.class);
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 		App app = new App();
 		app.run();
 	}
 
-	void run() throws IOException {
+	void run() {
 		logger.info("Starting");
 		List<Deal> deals = new ArrayList<Deal>();
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1S");
 		}
 
@@ -38,7 +42,7 @@ public class App {
 			generate1m(deals, "3H");
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "2C");
 		}
 
@@ -50,7 +54,7 @@ public class App {
 			generate1m(deals, "3C");
 		}
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1m(deals, "1N");
 		}
 
@@ -149,13 +153,31 @@ public class App {
 			generate1MDoubled(deals);
 		}
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1mOvercalled(deals, 0, 13, 4, 40);
 		}
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1mDoubled(deals);
 		}
+
+		for (int i = 0; i < 0; i++) {
+			generate1NCheckback(deals, 11, 16);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generate2NCheckback(deals, 6, 12);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generate1M1NPeter(deals);
+		}
+
+		for (int i = 0; i < 16; i++) {
+			generate1MThirdHand(deals, 6, 11);
+		}
+
+		generateFromPBN("/home/fisher/PJL/wk4.txt", 0, deals);
 
 		Collections.shuffle(deals);
 
@@ -163,24 +185,184 @@ public class App {
 		try (PrintWriter lin = new PrintWriter(new FileWriter("mixed.lin"))) {
 			for (Deal deal : deals) {
 				handNum++;
-				int dealer = (handNum) % 4 + 1;
-				if (handNum % 4 == 0) {
-					addLine(lin, handNum, dealer, "bone".charAt(rand.nextInt(4)), deal.getHand1(), deal.getHand2(),
-							deal.getHand3());
+				int dealer = (handNum + 1) % 4 + 1;
+				if (handNum % 4 == 3) {
+					addLine(lin, handNum, dealer, deal.getHand1(), deal.getHand2(), deal.getHand3());
+				} else if (handNum % 4 == 0) {
+					addLine(lin, handNum, dealer, deal.getHand4(), deal.getHand1(), deal.getHand2());
 				} else if (handNum % 4 == 1) {
-					addLine(lin, handNum, dealer, "bone".charAt(rand.nextInt(4)), deal.getHand4(), deal.getHand1(),
-							deal.getHand2());
-				} else if (handNum % 4 == 2) {
-					addLine(lin, handNum, dealer, "bone".charAt(rand.nextInt(4)), deal.getHand3(), deal.getHand4(),
-							deal.getHand1());
+					addLine(lin, handNum, dealer, deal.getHand3(), deal.getHand4(), deal.getHand1());
 				} else {
-					addLine(lin, handNum, dealer, "bone".charAt(rand.nextInt(4)), deal.getHand2(), deal.getHand3(),
-							deal.getHand4());
+					addLine(lin, handNum, dealer, deal.getHand2(), deal.getHand3(), deal.getHand4());
 				}
 				System.out.println(deal);
 			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		logger.info("Done " + deals.size());
+
+	}
+
+	private void generate1MThirdHand(List<Deal> deals, int minHCP, int maxHCP) {
+
+		boolean found = false;
+		while (!found) {
+
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+
+			if (hand1.getHcp() < minHCP || hand1.getHcp() > maxHCP) {
+				continue;
+			}
+			String open = hand1.getOpen5CM();
+			if (!"PASS".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			open = hand2.getOpen5CM();
+			if (!"PASS".equals(open)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			open = hand3.getOpen5CM(11);
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, "PASS", "PASS", open));
+		}
+
+	}
+
+	private void generateFromPBN(String fname, int maxCount, List<Deal> deals) {
+		if (maxCount == 0) {
+			return;
+		}
+		try (BufferedReader br = new BufferedReader(new FileReader(new File(fname)))) {
+			String st;
+			int count = 0;
+			Integer dealer = null;
+			Hand[] hands = null;
+			Integer from = null;
+			while ((st = br.readLine()) != null) {
+				if (st.contains("Dealer ")) {
+					int q1 = st.indexOf('"');
+					int q2 = st.indexOf('"', q1 + 1);
+					dealer = "NESW".indexOf(st.substring(q1 + 1, q2));
+				}
+				if (st.contains("[Deal ")) {
+					int q1 = st.indexOf('"');
+					int q2 = st.indexOf('"', q1 + 1);
+					int i = 0;
+					hands = new Hand[4];
+					from = "NESW".indexOf(st.substring(q1 + 1, q1 + 2));
+					for (String hand : st.substring(q1 + 3, q2).split(" ")) {
+						Hand h = new Hand();
+						hands[i++] = h;
+						h.setPBN(hand);
+					}
+				}
+				if (dealer != null & hands != null) {
+					count++;
+					int rotate = dealer - from;
+					deals.add(new Deal(hands[(rotate + 4) % 4], hands[(rotate + 5) % 4], hands[(rotate + 6) % 4],
+							hands[(rotate + 7) % 4], null, null, null));
+					if (count >= maxCount) {
+						break;
+					}
+					dealer = null;
+					hands = null;
+				}
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private void generate1NCheckback(List<Deal> deals, int minHCP, int maxHCP) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			if (hand1.getHcp() < 12 || hand1.getHcp() > 14 || !hand1.isBalanced()) {
+				continue;
+			}
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1C", "1D", "1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			String response = hand3.getResponse(open);
+			if (response.equals("1N") || response.charAt(0) != '1') {
+				continue;
+			}
+			if (hand3.getHcp() < minHCP || hand3.getHcp() > maxHCP) {
+				continue;
+			}
+			if (hand1.getCount(response) > 3) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) { // Not good code for fourth hand
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response));
+		}
+
+	}
+
+	private void generate2NCheckback(List<Deal> deals, int minHCP, int maxHCP) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			if (hand1.getHcp() < 18 || hand1.getHcp() > 19 || !hand1.isBalanced()) {
+				continue;
+			}
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1C", "1D", "1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			String response = hand3.getResponse(open);
+			if (Set.of("PASS", "1N", "2N").contains(response)) {
+				continue;
+			}
+			if (hand3.getHcp() < minHCP || hand3.getHcp() > maxHCP) {
+				continue;
+			}
+			if (hand1.getCount(response) > 3) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) { // Not good code for fourth hand
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response));
+		}
 
 	}
 
@@ -206,7 +388,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
 		}
 
 	}
@@ -237,7 +419,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
 		}
 
 	}
@@ -264,7 +446,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
 		}
 	}
 
@@ -294,7 +476,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
 		}
 	}
 
@@ -322,7 +504,7 @@ public class App {
 			}
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
 		}
 
 	}
@@ -351,7 +533,7 @@ public class App {
 			}
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
 		}
 
 	}
@@ -377,7 +559,7 @@ public class App {
 			Hand hand3 = stock.dealHand();
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
 		}
 
 	}
@@ -407,7 +589,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
 		}
 
 	}
@@ -437,7 +619,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
 		}
 	}
 
@@ -466,7 +648,42 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+		}
+
+	}
+
+	private void generate1M1NPeter(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			int hcp = hand1.getHcp();
+			if (!hand1.isBalanced() || hcp < 12 || hcp > 14) {
+				continue;
+			}
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			String resp = hand3.get1NPeterResponse(open);
+			if (!"1N".equals(resp)) {
+				continue;
+			}
+			logger.debug("{} and {}", open, resp);
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+
 		}
 
 	}
@@ -495,7 +712,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
 		}
 	}
 
@@ -522,16 +739,17 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response));
 		}
 	}
 
-	private void addLine(PrintWriter lin, int handNum, int dealer, char vulnerability, Hand hand1, Hand hand2,
-			Hand hand3) {
+	private String bone = "onebneboebonbone";
+
+	private void addLine(PrintWriter lin, int handNum, int dealer, Hand hand1, Hand hand2, Hand hand3) {
 		lin.print("qx|o" + handNum + ",Bd " + handNum);
 		lin.print("|rh||ah|Bd " + handNum + "|md|" + dealer);
 		lin.print(hand1.getDisplay() + "," + hand2.getDisplay() + "," + hand3.getDisplay());
-		lin.print("|sv|" + vulnerability + "|sk||pg||");
+		lin.print("|sv|" + bone.charAt((handNum - 1) % 16) + "|sk||pg||");
 		lin.println();
 	}
 
