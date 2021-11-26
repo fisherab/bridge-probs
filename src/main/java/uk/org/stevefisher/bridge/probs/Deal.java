@@ -8,16 +8,19 @@ public class Deal {
 	private Hand hand4;
 	private String open;
 	private String intervention;
-	private String response;
+	private String third;
+	private String fourth;
 
-	public Deal(Hand hand1, Hand hand2, Hand hand3, Hand hand4, String open, String intervention, String response) {
+	public Deal(Hand hand1, Hand hand2, Hand hand3, Hand hand4, String open, String intervention, String third,
+			String fourth) {
 		this.hand1 = hand1;
 		this.hand2 = hand2;
 		this.hand3 = hand3;
 		this.hand4 = hand4;
-		this.open = open;
+		this.open = open == "PASS" ? "-" : open;
 		this.intervention = intervention == "PASS" ? "-" : intervention;
-		this.response = response;
+		this.third = third == "PASS" ? "-" : third;
+		this.fourth = fourth == "PASS" ? "-" : fourth;
 	}
 
 	public Hand getHand1() {
@@ -46,7 +49,7 @@ public class Deal {
 
 	public String toString() {
 		return hand1.getDisplay() + " " + hand2.getDisplay() + " " + hand3.getDisplay() + " " + hand4.getDisplay() + " "
-				+ open + "(" + (intervention == "PASS" ? "-" : intervention) + ")" + response + " " + hand3.getHcp();
+				+ open + "(" + intervention + ")" + third + "(" + fourth + ") " + hand1.getHcp();
 	}
 
 }

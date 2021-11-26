@@ -102,27 +102,7 @@ public class App {
 		}
 
 		for (int i = 0; i < 0; i++) {
-			generate1NT(deals, "2C", 8, 9);
-		}
-
-		for (int i = 0; i < 0; i++) {
-			generate1NT(deals, "2C", 10, 40);
-		}
-
-		for (int i = 0; i < 0; i++) {
-			generate1NT(deals, "3N", 10, 40);
-		}
-
-		for (int i = 0; i < 0; i++) {
-			generate1NT(deals, "2N", 0, 40);
-		}
-
-		for (int i = 0; i < 0; i++) {
-			generate1NT(deals, "2D", 0, 40);
-		}
-
-		for (int i = 0; i < 0; i++) {
-			generate1NT(deals, "4N", 0, 40);
+			generate1NT(deals, 7, 40);
 		}
 
 		for (int i = 0; i < 0; i++) {
@@ -173,8 +153,52 @@ public class App {
 			generate1M1NPeter(deals);
 		}
 
-		for (int i = 0; i < 16; i++) {
+		for (int i = 0; i < 0; i++) {
 			generate1MThirdHand(deals, 6, 11);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generate2SuitedOvercall(deals);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateMultiLandy(deals, "2C");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateMultiLandy(deals, "2D");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateMultiLandy(deals, "2H");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateMultiLandy(deals, "2S");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateMultiLandy(deals, "2N");
+		}
+
+		for (int i = 0; i < 12; i++) {
+			generateDrury(deals);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateOvercall(deals, "NT");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateOvercall(deals, "New suit");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateOvercall(deals, "Fit");
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateOvercall(deals, "UCB");
 		}
 
 		generateFromPBN("/home/fisher/PJL/wk4.txt", 0, deals);
@@ -201,6 +225,189 @@ public class App {
 			e.printStackTrace();
 		}
 		logger.info("Done " + deals.size());
+
+	}
+
+	private void generateOvercall(List<Deal> deals, String bidR) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM(); // Just want one of a suit opening
+			if ("PASS".equals(open)) {
+				continue;
+			}
+			if (open.charAt(1) == 'N') {
+				continue;
+			}
+			if (open.charAt(0) != '1') {
+				continue;
+			}
+
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (Set.of("X", "PASS").contains(intervention)) {
+				continue;
+			}
+			if (intervention.charAt(1) == 'N') {
+				continue;
+			}
+			if (intervention.charAt(1) == open.charAt(1)) { // Michaels
+				continue;
+			}
+
+			Hand hand3 = stock.dealHand();
+			if (hand3.getHcp() > 6)
+				continue;
+
+			Hand hand4 = stock.dealHand();
+			int support = hand4.getCount(intervention);
+			int hcp = hand4.getHcp();
+			String bid = null;
+			String bidT = null;
+			if (support >= 3 && hcp >= 10) { // UCB
+				bid = "2" + open.charAt(1);
+				bidT = "UCB";
+			}
+			if (bid == null && support >= 3) { // Level of fit
+				int maxLevel = (intervention.charAt(1) == 'c' || intervention.charAt(1) == 'd') ? 5 : 4;
+				int level = Math.min(support - 1, maxLevel);
+				bid = String.valueOf(level) + intervention.charAt(1);
+				bidT = "Fit";
+			}
+			if (bid == null) {
+				String consider = hand4.intervention(open);
+				if (!Set.of("X", "PASS").contains(consider) && consider.charAt(1) != 'N'
+						&& consider.charAt(1) != open.charAt(1)) {
+					if (consider.charAt(0) < intervention.charAt(0)) {
+						continue; // Could be better
+					}
+					if (consider.charAt(0) == intervention.charAt(0) && consider.charAt(1) < intervention.charAt(1)) {
+						continue; // Could be better
+					}
+					bid = consider;
+					bidT = "New suit";
+				}
+			}
+			if (bid == null) {
+				int nt = Math.min(3, (hcp - 7) / 3);
+				if (nt >= Character.getNumericValue(intervention.charAt(0))) {
+					bid = String.valueOf(nt) + "N";
+					bidT = "NT";
+				}
+			}
+
+			if (bid == null) {
+				continue;
+			}
+
+			if (!bidT.equals(bidR)) {
+				continue;
+			}
+
+			System.out.println(bidT + " " + bid + " " + support + " " + hcp);
+
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, "PASS", bid));
+		}
+
+	}
+
+	private void generateDrury(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+
+			Stock stock = new Stock();
+
+			Hand hand1 = stock.dealHand();
+			if (hand1.getHcp() < 8) {
+				continue;
+			}
+			String bid1 = hand1.getOpen5CM();
+			if (!bid1.equals("PASS")) {
+				continue;
+			}
+
+			Hand hand2 = stock.dealHand();
+			String bid2 = hand2.getOpen5CM();
+			if (!bid2.equals("PASS")) {
+				continue;
+			}
+
+			Hand hand3 = stock.dealHand();
+			String open = hand3.getOpen5CM(11);
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+			String intervention = hand4.intervention(open);
+			if (!intervention.equals("PASS")) {
+				continue;
+			}
+
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, "PASS", "PASS", open, intervention));
+		}
+
+	}
+
+	private void generateMultiLandy(List<Deal> deals, String bid) {
+		boolean found = false;
+		while (!found) {
+
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+
+			String open = hand1.getOpen5CM();
+			if (!open.equals("1N")) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+
+			if (!intervention.equals(bid)) {
+				continue;
+			}
+
+			Hand hand3 = stock.dealHand();
+
+			Hand hand4 = stock.dealHand();
+
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
+		}
+
+	}
+
+	private void generate2SuitedOvercall(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+
+			String open = hand1.getOpen5CM();
+			if (open.charAt(0) != '1') {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+
+			if (intervention.charAt(0) != '2') {
+				continue;
+			}
+			char strain = intervention.charAt(1);
+			if (strain != 'N' && strain != open.charAt(1)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+
+			Hand hand4 = stock.dealHand();
+
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
+		}
 
 	}
 
@@ -234,7 +441,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, "PASS", "PASS", open));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, "PASS", "PASS", open, null));
 		}
 
 	}
@@ -271,7 +478,7 @@ public class App {
 					count++;
 					int rotate = dealer - from;
 					deals.add(new Deal(hands[(rotate + 4) % 4], hands[(rotate + 5) % 4], hands[(rotate + 6) % 4],
-							hands[(rotate + 7) % 4], null, null, null));
+							hands[(rotate + 7) % 4], null, null, null, null));
 					if (count >= maxCount) {
 						break;
 					}
@@ -323,7 +530,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response, null));
 		}
 
 	}
@@ -361,7 +568,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response, null));
 		}
 
 	}
@@ -388,7 +595,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
 		}
 
 	}
@@ -419,7 +626,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
 		}
 
 	}
@@ -446,7 +653,7 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
 		}
 	}
 
@@ -476,11 +683,11 @@ public class App {
 
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
 		}
 	}
 
-	private void generate1NT(List<Deal> deals, String response, int minHcp, int maxHcp) {
+	private void generate1NT(List<Deal> deals, int minHcp, int maxHcp) {
 		boolean found = false;
 		while (!found) {
 			Stock stock = new Stock();
@@ -490,21 +697,16 @@ public class App {
 				continue;
 			}
 			Hand hand2 = stock.dealHand();
-			String intervention = hand2.getHcp() < 8 ? "PASS" : hand2.intervention(open);
-			if (!"PASS".equals(intervention)) {
-				continue;
-			}
+
 			Hand hand3 = stock.dealHand();
 			if (hand3.getHcp() < minHcp || hand3.getHcp() > maxHcp) {
 				continue;
 			}
 			String resp = hand3.getResponse(open);
-			if (!resp.equals(response)) {
-				continue;
-			}
+
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, null, resp, null));
 		}
 
 	}
@@ -533,7 +735,7 @@ public class App {
 			}
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp, null));
 		}
 
 	}
@@ -559,7 +761,7 @@ public class App {
 			Hand hand3 = stock.dealHand();
 			Hand hand4 = stock.dealHand();
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
 		}
 
 	}
@@ -589,7 +791,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp, null));
 		}
 
 	}
@@ -619,7 +821,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
 		}
 	}
 
@@ -648,7 +850,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp, null));
 		}
 
 	}
@@ -682,7 +884,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp, null));
 
 		}
 
@@ -712,7 +914,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp, null));
 		}
 	}
 
@@ -739,7 +941,7 @@ public class App {
 				continue;
 			}
 			found = true;
-			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response));
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response, null));
 		}
 	}
 

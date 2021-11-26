@@ -433,7 +433,7 @@ public class Hand {
 		return resp;
 	}
 
-	private Suit getSuit(char sc) {
+	static Suit getSuit(char sc) {
 		for (Suit suit : Suit.values()) {
 			if (suit.name().charAt(0) == sc)
 				return suit;
@@ -544,7 +544,32 @@ public class Hand {
 		int lh = suitCards.get(Suit.HEARTS).size();
 		int lc = suitCards.get(Suit.CLUBS).size();
 		int ld = suitCards.get(Suit.DIAMONDS).size();
-		if ("1N".equals(open)) {
+		Suit suitOpened = getSuitFromBid(open);
+
+		if (suitOpened != null) {
+			if (open.charAt(0) == '1' && len2 >= 5 && longest != suitOpened && longest2 != suitOpened && hcp >= 8) {
+				Set<Suit> longs = Set.of(longest, longest2);
+				boolean major = Set.of(Suit.SPADES, Suit.HEARTS).contains(suitOpened);
+
+				if (open.charAt(1) != 'N') {
+					if (longs.contains(Suit.SPADES) && longs.contains(Suit.HEARTS)) {
+						result = "2" + open.charAt(1);
+					} else if (major && (longs.contains(Suit.SPADES) || longs.contains(Suit.HEARTS))) {
+						result = "2" + open.charAt(1);
+					}
+				}
+				if (result == null) {
+					if (longs.contains(Suit.CLUBS) && longs.contains(Suit.DIAMONDS)) {
+						result = "2N";
+					} else if (longs.contains(Suit.HEARTS)
+							&& (longs.contains(Suit.CLUBS) || longs.contains(Suit.DIAMONDS))) {
+						result = "2N";
+					}
+				}
+			}
+		}
+
+		if (result == null && "1N".equals(open)) {
 
 			if (hcp >= 16) {
 				result = "X";
@@ -578,8 +603,6 @@ public class Hand {
 					lh, ld, lc, result);
 			return result;
 		}
-
-		Suit suitOpened = getSuitFromBid(open);
 
 		char level = open.charAt(0);
 		if (level == '1') {
@@ -725,30 +748,6 @@ public class Hand {
 		logger.debug("Response for {} to {} {} hcp {} with {}{}s => {}", getDisplay(), opening,
 				balanced ? " Bal" : "!Bal", hcp, len, longest.name().charAt(0), resp);
 		return resp;
-	}
-
-	public String getCards(Suit s) {
-		init();
-		String result = "";
-		cards = suitCards.get(s);
-
-		if (cards.contains(new Card('T', s))) {
-			if (!result.isEmpty()) {
-				result += " ";
-			}
-			result += "10";
-		}
-		for (int i = 13; i > 0; i--) {
-			if (i != 10) {
-				if (cards.contains(new Card(i, s))) {
-					if (!result.isEmpty()) {
-						result += " ";
-					}
-					result += Card.nameOf(i);
-				}
-			}
-		}
-		return result;
 	}
 
 	public String getOpen5CM() {
