@@ -181,7 +181,7 @@ public class App {
 			generateMultiLandy(deals, "2N");
 		}
 
-		for (int i = 0; i < 12; i++) {
+		for (int i = 0; i < 0; i++) {
 			generateDrury(deals);
 		}
 
@@ -199,6 +199,14 @@ public class App {
 
 		for (int i = 0; i < 0; i++) {
 			generateOvercall(deals, "UCB");
+		}
+
+		for (int i = 0; i < 8; i++) {
+			generateNegativeDouble(deals, 4);
+		}
+		
+		for (int i = 0; i < 4; i++) {
+			generateNegativeDouble(deals, 5);
 		}
 
 		generateFromPBN("/home/fisher/PJL/wk4.txt", 0, deals);
@@ -590,6 +598,40 @@ public class App {
 			Hand hand3 = stock.dealHand();
 
 			if (hand3.getHcp() < 4) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, null, null));
+		}
+
+	}
+
+	private void generateNegativeDouble(List<Deal> deals, int len) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1C", "1D", "1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (Set.of("PASS", "X").contains(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			int n = hand3.getCount(open);
+			if (n >= 3) {
+				continue;
+			}
+			if (hand3.getLen() != len) {
+				continue;
+			}
+			int hcp = hand3.getHcp();
+			if (hcp < 6 ) {
 				continue;
 			}
 

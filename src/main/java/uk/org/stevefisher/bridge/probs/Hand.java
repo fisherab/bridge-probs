@@ -754,4 +754,9 @@ public class Hand {
 		return getOpen5CM(12);
 	}
 
+	public int getLen() {
+		init();
+		return len;
+	}
+
 }
