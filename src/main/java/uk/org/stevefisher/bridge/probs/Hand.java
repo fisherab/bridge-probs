@@ -38,6 +38,10 @@ public class Hand {
 
 	private int len2;
 
+	private int voids;
+
+	private int singletons;
+
 	private static Map<Suit, String> bumrubMap = Map.ofEntries(Map.entry(Suit.CLUBS, "1H"),
 			Map.entry(Suit.DIAMONDS, "1C"), Map.entry(Suit.HEARTS, "1D"), Map.entry(Suit.SPADES, "1D"));
 
@@ -79,6 +83,23 @@ public class Hand {
 				add(new Card(c, s));
 			}
 		}
+	}
+
+	public String getDDSPBN() {
+		init();
+		return getSuitString(Suit.SPADES) + "." + getSuitString(Suit.HEARTS) + "." + getSuitString(Suit.DIAMONDS) + "."
+				+ getSuitString(Suit.CLUBS);
+	}
+
+	private String getSuitString(Suit s) {
+		Set<Card> cards = suitCards.get(s);
+		String result = cards.contains(new Card('A', s)) ? "A" : "";
+		for (int i = 13; i > 1; i--) {
+			if (cards.contains(new Card(i, s))) {
+				result += Card.nameOf(i);
+			}
+		}
+		return result;
 	}
 
 	public Hand() {
@@ -126,10 +147,18 @@ public class Hand {
 			int doubletons = 0;
 			hcp = 0;
 			fours = 0;
+			singletons = 0;
+			voids = 0;
 			for (Suit suit : Suit.values()) {
 				int n = suitCards.get(suit).size();
 				if (n < 2) {
 					balanced = false;
+				}
+				if (n == 0) {
+					voids++;
+				}
+				if (n == 1) {
+					singletons++;
 				}
 				if (n == 2) {
 					doubletons++;
@@ -168,6 +197,11 @@ public class Hand {
 	public boolean isBalanced() {
 		init();
 		return balanced;
+	}
+
+	public boolean hasVoidorSingleton() {
+		init();
+		return voids > 0 || singletons > 0;
 	}
 
 	public String getOpen() {
@@ -714,6 +748,11 @@ public class Hand {
 		init();
 		Suit suit = getSuitFromBid(bid);
 		return suit == null ? -1 : suitCards.get(suit).size();
+	}
+
+	public int getCount(Suit suit) {
+		init();
+		return suitCards.get(suit).size();
 	}
 
 	/**

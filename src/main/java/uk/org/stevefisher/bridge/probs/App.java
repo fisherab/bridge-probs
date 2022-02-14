@@ -6,15 +6,21 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import uk.org.stevefisher.bridge.probs.Card.Suit;
 
 public class App {
 
@@ -82,7 +88,7 @@ public class App {
 			generate1MOvercalledSupport(deals);
 		}
 
-		Histogram hist1N = new Histogram("Intervention after weak 2 (P23X)", 10, 0.0, 1.0);
+		Histogram hist1N = new Histogram("Intervention after weak 2 (P23X)", 1, 0.0, 1.0);
 		for (int i = 0; i < 0; i++) {
 			generateWeakTwo(deals, 'P', hist1N);
 		}
@@ -201,13 +207,36 @@ public class App {
 			generateOvercall(deals, "UCB");
 		}
 
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 0; i++) {
 			generateNegativeDouble(deals, 4);
 		}
-		
-		for (int i = 0; i < 4; i++) {
+
+		for (int i = 0; i < 0; i++) {
 			generateNegativeDouble(deals, 5);
 		}
+
+		for (int i = 0; i < 0; i++) {
+			generateSplintersR(deals);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateSplintersJ(deals);
+		}
+
+		for (int i = 0; i < 0; i++) {
+			generateSplinters2(deals);
+		}
+
+		for (int i = 0; i < 6; i++) {
+			generateMinorResponseToN(deals);
+		}
+
+		generateContractFilteredMinorResponseToN(deals, Suit.CLUBS, 11, 1);
+		generateContractFilteredMinorResponseToN(deals, Suit.DIAMONDS, 11, 1);
+		generateContractFilteredMinorResponseToN(deals, Suit.CLUBS, 12, 1);
+		generateContractFilteredMinorResponseToN(deals, Suit.DIAMONDS, 12, 1);
+		generateContractFilteredMinorResponseToN(deals, Suit.CLUBS, 13, 1);
+		generateContractFilteredMinorResponseToN(deals, Suit.DIAMONDS, 13, 1);
 
 		generateFromPBN("/home/fisher/PJL/wk4.txt", 0, deals);
 
@@ -232,8 +261,229 @@ public class App {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println("Done " + deals.size());
 		logger.info("Done " + deals.size());
 
+	}
+
+	private class StreamGobbler extends Thread {
+		InputStream is;
+		List<String> data = new ArrayList<String>();
+
+		public List<String> getData() {
+			return data;
+		}
+
+		private StreamGobbler(InputStream is) {
+			this.is = is;
+		}
+
+		@Override
+		public void run() {
+			try {
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+				String line = null;
+				while ((line = br.readLine()) != null)
+					data.add(line);
+
+			} catch (IOException ioe) {
+				ioe.printStackTrace();
+			}
+		}
+	}
+
+	private List<Deal> filterContracts(List<Deal> tdeal, Suit suit, int tricks) {
+		List<Deal> newDeals = new ArrayList<Deal>();
+		Process p;
+		int skip = 0;
+		if (suit == Suit.SPADES) {
+			skip = 4;
+		} else if (suit == Suit.HEARTS) {
+			skip = 8;
+		} else if (suit == Suit.DIAMONDS) {
+			skip = 12;
+		} else if (suit == Suit.CLUBS) {
+			skip = 16;
+		}
+		try {
+			p = new ProcessBuilder("/home/fisher/dds290complete/apps/CalcAllTablesPBN").start();
+			StreamGobbler errorGobbler = new StreamGobbler(p.getErrorStream());
+			StreamGobbler outputGobbler = new StreamGobbler(p.getInputStream());
+			outputGobbler.start();
+			errorGobbler.start();
+			PrintStream ps = new PrintStream(p.getOutputStream());
+			for (Deal deal : tdeal) {
+				ps.println("N:" + deal.getHand1().getDDSPBN() + " " + deal.getHand2().getDDSPBN() + " "
+						+ deal.getHand3().getDDSPBN() + " " + deal.getHand4().getDDSPBN());
+			}
+			ps.close();
+			p.waitFor();
+			List<String> data = outputGobbler.getData();
+			for (int i = 0; i < data.size(); i++) {
+				String datum = data.get(i);
+				Scanner sc = new Scanner(datum);
+				for (int j = 0; j < skip; j++) {
+					sc.nextInt();
+				}
+				int n = sc.nextInt();
+				int s = sc.nextInt();
+				if (n == tricks || s == tricks) {
+					System.out.println(datum);
+					newDeals.add(tdeal.get(i));
+				}
+				sc.close();
+			}
+			List<String> errors = errorGobbler.getData();
+			if (!errors.isEmpty())
+				System.out.println("Errors " + errorGobbler.getData());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		return newDeals;
+
+	}
+
+	private void generateContractFilteredMinorResponseToN(List<Deal> deals, Suit suit, int tricks, int n) {
+		List<Deal> tdeal = new ArrayList<Deal>();
+		while (n > 0) {
+			for (int i = 0; i < 32; i++) {
+				generateMinorResponseToN(tdeal);
+			}
+			List<Deal> newDeals = filterContracts(tdeal, suit, tricks);
+			while (newDeals.size() > n)
+				newDeals.remove(0);
+			deals.addAll(newDeals);
+			n -= newDeals.size();
+		}
+	}
+
+	private void generateMinorResponseToN(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!"1N".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+
+			Hand hand3 = stock.dealHand();
+			int c = hand3.getCount(Suit.CLUBS);
+			int d = hand3.getCount(Suit.DIAMONDS);
+			if (c < 6 && d < 6 && c + d < 10) {
+				continue;
+			}
+
+			Hand hand4 = stock.dealHand();
+
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, null, null, null));
+		}
+
+	}
+
+	private void generateSplintersR(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			String open = hand1.getOpen5CM();
+			if (!"1H".equals(open) && !"1S".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			if (!hand3.hasVoidorSingleton()) {
+				continue;
+			}
+			if (hand3.getHcp() < 13) {
+				continue;
+			}
+			if (hand3.getCount(open) < 4) {
+				continue;
+			}
+			String response = hand3.getResponse(open);
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response, null));
+		}
+	}
+
+	private void generateSplintersJ(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			if (!hand1.hasVoidorSingleton()) {
+				continue;
+			}
+			String open = hand1.getOpen5CM();
+			if (!"1H".equals(open) && !"1S".equals(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			if (hand3.getHcp() < 13) {
+				continue;
+			}
+			if (hand3.getCount(open) < 4) {
+				continue;
+			}
+			String response = hand3.getResponse(open);
+			Hand hand4 = stock.dealHand();
+			if (!"PASS".equals(hand4.intervention(open))) {
+				continue;
+			}
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, response, null));
+		}
+	}
+
+	private void generateSplinters2(List<Deal> deals) {
+		boolean found = false;
+		while (!found) {
+			Stock stock = new Stock();
+			Hand hand1 = stock.dealHand();
+			if (!hand1.hasVoidorSingleton()) {
+				continue;
+			}
+			String open = hand1.getOpen5CM();
+			if (!Set.of("1H", "1S").contains(open)) {
+				continue;
+			}
+			Hand hand2 = stock.dealHand();
+			String intervention = hand2.intervention(open);
+			if (!"PASS".equals(intervention)) {
+				continue;
+			}
+			Hand hand3 = stock.dealHand();
+			if (hand3.getHcp() < 12) {
+				continue;
+			}
+			String resp = hand3.getResponse(open);
+			if (!Set.of("2C", "2D", "2H", "2S").contains(resp)) {
+				continue;
+			}
+			Hand hand4 = stock.dealHand();
+			found = true;
+			deals.add(new Deal(hand1, hand2, hand3, hand4, open, intervention, resp, null));
+		}
 	}
 
 	private void generateOvercall(List<Deal> deals, String bidR) {
@@ -631,7 +881,7 @@ public class App {
 				continue;
 			}
 			int hcp = hand3.getHcp();
-			if (hcp < 6 ) {
+			if (hcp < 6) {
 				continue;
 			}
 
@@ -796,7 +1046,9 @@ public class App {
 			String intervention = hand2.intervention(open);
 			char letter = intervention.charAt(0);
 			int offset = "P23X".indexOf(letter);
-			hist.add(offset);
+			if (hist != null) {
+				hist.add(offset);
+			}
 			if (interv != letter && interv != ' ') {
 				continue;
 			}
